@@ -80,30 +80,58 @@ function Stats({ date }: StatsProps) {
 
   return (
     <div className="stats">
-      <h3>{formatMonth(date)} 支出统计</h3>
-
-      <div className="stats-total">
-        <span className="total-label">本月支出</span>
-        <span className="total-amount">¥{stats.total.toFixed(2)}</span>
-      </div>
-
-      {sortedCategories.length === 0 ? (
-        <div className="empty-state">
-          <ChartPie size={72} weight="duotone" />
-          <div className="empty-text">暂无支出记录</div>
-          <div className="hint">开始记账看看你的消费分布吧</div>
-        </div>
-      ) : (
-        <>
-          <div className="pie-chart-container">
-            <div className="pie-chart" style={{ background: getPieGradient() }}>
-              <div className="pie-center">
-                <div className="pie-center-amount">¥{stats.total.toFixed(0)}</div>
-                <div className="pie-center-label">本月支出</div>
-              </div>
-            </div>
+      <div className="stats-main">
+        <div className="stats-section">
+          <h3>{formatMonth(date)} 支出统计</h3>
+          <div className="stats-total">
+            <span className="total-label">本月支出</span>
+            <span className="total-amount">¥{stats.total.toFixed(2)}</span>
           </div>
 
+          {sortedCategories.length === 0 ? (
+            <div className="empty-state">
+              <ChartPie size={72} weight="duotone" />
+              <div className="empty-text">暂无支出记录</div>
+              <div className="hint">开始记账看看你的消费分布吧</div>
+            </div>
+          ) : (
+            <>
+              <div className="pie-chart-container">
+                <div className="pie-chart" style={{ background: getPieGradient() }}>
+                  <div className="pie-center">
+                    <div className="pie-center-amount">¥{stats.total.toFixed(0)}</div>
+                    <div className="pie-center-label">本月支出</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="stats-list">
+                {sortedCategories.map(([category, amount]) => (
+                  <div key={category} className="stats-item">
+                    <div className="stats-category">
+                      <div className="cat-icon" style={{ backgroundColor: categoryColors[category] }}>
+                        {categoryIcons[category] || <Package size={16} weight="fill" />}
+                      </div>
+                      <span className="stats-category-name">{category}</span>
+                    </div>
+                    <div className="stats-bar-container">
+                      <div
+                        className="stats-bar"
+                        style={{
+                          width: `${stats.total > 0 ? (amount / stats.total) * 100 : 0}%`,
+                          backgroundColor: categoryColors[category] || '#999',
+                        }}
+                      />
+                    </div>
+                    <span className="stats-amount">¥{amount.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="stats-section">
           <div className="stats-cards">
             {sortedCategories.map(([category, amount]) => (
               <div key={category} className="stats-card">
@@ -117,31 +145,8 @@ function Stats({ date }: StatsProps) {
               </div>
             ))}
           </div>
-
-          <div className="stats-list">
-            {sortedCategories.map(([category, amount]) => (
-              <div key={category} className="stats-item">
-                <div className="stats-category">
-                  <div className="cat-icon" style={{ backgroundColor: categoryColors[category] }}>
-                    {categoryIcons[category] || <Package size={16} weight="fill" />}
-                  </div>
-                  <span className="stats-category-name">{category}</span>
-                </div>
-                <div className="stats-bar-container">
-                  <div
-                    className="stats-bar"
-                    style={{
-                      width: `${stats.total > 0 ? (amount / stats.total) * 100 : 0}%`,
-                      backgroundColor: categoryColors[category] || '#999',
-                    }}
-                  />
-                </div>
-                <span className="stats-amount">¥{amount.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
+        </div>
+      </div>
     </div>
   );
 }

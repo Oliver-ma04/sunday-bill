@@ -323,223 +323,229 @@ function RecordForm({
         e.preventDefault();
       }
     }}>
-      <h3>{record ? '编辑记录' : (isExpense ? '新增支出' : '新增收入')}</h3>
+      <div className="form-main">
+        <div className="form-section">
+          <h3>{record ? '编辑记录' : (isExpense ? '新增支出' : '新增收入')}</h3>
 
-      {/* 支出/收入切换 */}
-      <div className="type-toggle">
-        <button
-          type="button"
-          className={`type-btn ${isExpense ? 'active' : ''}`}
-          onClick={() => setIsExpense(true)}
-        >
-          <ArrowDown size={16} weight="bold" />
-          支出
-        </button>
-        <button
-          type="button"
-          className={`type-btn ${!isExpense ? 'active' : ''}`}
-          onClick={() => setIsExpense(false)}
-        >
-          <ArrowUp size={16} weight="bold" />
-          收入
-        </button>
-      </div>
-
-      <div className="form-group">
-        <label>金额</label>
-        <div className="amount-input-wrapper">
-          <input
-            type="text"
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="0.00"
-          />
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label>一级分类</label>
-        <div className="category-grid">
-          {parentCategories.map((cat) => (
-            <div
-              key={cat.id}
-              className={`category-btn ${selectedParentId === cat.id ? 'active' : ''}`}
-              onClick={() => {
-                handleSelectParent(cat.id);
-                setSelectedCategoryId(null);
-              }}
-            >
-              <div
-                className="cat-icon"
-                style={{ backgroundColor: getCategoryColor(cat.name) }}
-              >
-                {categoryIcons[cat.name] || <Package size={24} weight="fill" />}
-              </div>
-              <span className="category-name">{cat.name}</span>
-              <button
-                type="button"
-                className="cat-delete-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteCategory(cat.id, cat.name);
-                }}
-              >
-                <X size={12} weight="bold" />
-              </button>
-            </div>
-          ))}
-        </div>
-        {/* 添加一级分类 - 单独一行 */}
-        {showParentCustomInput ? (
-          <div className="custom-category-row">
-            <input
-              type="text"
-              className="custom-category-text-input"
-              value={parentCustomName}
-              onChange={(e) => setParentCustomName(e.target.value)}
-              placeholder="输入新分类名称，回车确认"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.stopPropagation();
-                  handleAddParentCategory();
-                }
-                if (e.key === 'Escape') {
-                  setShowParentCustomInput(false);
-                  setParentCustomName('');
-                }
-              }}
-            />
+          {/* 支出/收入切换 */}
+          <div className="type-toggle">
             <button
               type="button"
-              className="custom-category-confirm"
-              onClick={handleAddParentCategory}
-              disabled={!parentCustomName.trim() || isAddingParentCategory}
+              className={`type-btn ${isExpense ? 'active' : ''}`}
+              onClick={() => setIsExpense(true)}
             >
-              <Check size={18} weight="bold" />
+              <ArrowDown size={16} weight="bold" />
+              支出
             </button>
             <button
               type="button"
-              className="custom-category-cancel"
-              onClick={() => {
-                setShowParentCustomInput(false);
-                setParentCustomName('');
-              }}
+              className={`type-btn ${!isExpense ? 'active' : ''}`}
+              onClick={() => setIsExpense(false)}
             >
-              <X size={18} weight="bold" />
+              <ArrowUp size={16} weight="bold" />
+              收入
             </button>
           </div>
-        ) : (
-          <button
-            type="button"
-            className="add-category-row-btn"
-            onClick={() => setShowParentCustomInput(true)}
-          >
-            <Plus size={16} weight="bold" />
-            <span>添加一级分类</span>
-          </button>
-        )}
-      </div>
 
-      {selectedParentId && (
-        <div className="form-group">
-          <label>二级分类</label>
-          <div className="category-grid">
-            {subCategories.map((cat) => (
-              <div
-                key={cat.id}
-                className={`category-btn small ${selectedCategoryId === cat.id ? 'active' : ''}`}
-                onClick={() => setSelectedCategoryId(cat.id)}
-              >
-                <div
-                  className="cat-icon"
-                  style={{ backgroundColor: subCategoryColors[cat.name] || getCategoryColor(cat.parentCategoryName || '') }}
-                >
-                  {subCategoryIcons[cat.name] || <Package size={18} weight="fill" />}
-                </div>
-                <span className="category-name">{cat.name}</span>
-                <button
-                  type="button"
-                  className="cat-delete-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteCategory(cat.id, cat.name);
-                  }}
-                >
-                  <X size={12} weight="bold" />
-                </button>
-              </div>
-            ))}
-          </div>
-          {/* 添加自定义分类 - 单独一行 */}
-          {showCustomInput ? (
-            <div className="custom-category-row">
+          <div className="form-group">
+            <label>金额</label>
+            <div className="amount-input-wrapper">
               <input
                 type="text"
-                className="custom-category-text-input"
-                value={customCategoryName}
-                onChange={(e) => setCustomCategoryName(e.target.value)}
-                placeholder="输入新分类名称，按回车确认"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.stopPropagation();
-                    handleAddCustomCategory();
-                  }
-                  if (e.key === 'Escape') {
-                    setShowCustomInput(false);
-                    setCustomCategoryName('');
-                  }
-                }}
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
               />
-              <button
-                type="button"
-                className="custom-category-confirm"
-                onClick={handleAddCustomCategory}
-                disabled={!customCategoryName.trim() || isAddingCategory}
-              >
-                <Check size={18} weight="bold" />
-              </button>
-              <button
-                type="button"
-                className="custom-category-cancel"
-                onClick={() => {
-                  setShowCustomInput(false);
-                  setCustomCategoryName('');
-                }}
-              >
-                <X size={18} weight="bold" />
-              </button>
             </div>
-          ) : (
-            <button
-              type="button"
-              className="add-category-row-btn"
-              onClick={() => setShowCustomInput(true)}
-            >
-              <Plus size={16} weight="bold" />
-              <span>添加自定义分类</span>
+          </div>
+
+          <div className="form-group">
+            <label>备注（可选）</label>
+            <input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="添加备注..."
+            />
+          </div>
+
+          <div className="form-actions">
+            <button type="button" className="btn-cancel" onClick={onCancel}>
+              取消
             </button>
+            <button type="button" className="btn-submit" onClick={handleActualSubmit}>
+              {record ? '保存' : '添加'}
+            </button>
+          </div>
+        </div>
+
+        <div className="form-section">
+          <div className="form-group">
+            <label>一级分类</label>
+            <div className="category-grid">
+              {parentCategories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className={`category-btn ${selectedParentId === cat.id ? 'active' : ''}`}
+                  onClick={() => {
+                    handleSelectParent(cat.id);
+                    setSelectedCategoryId(null);
+                  }}
+                >
+                  <div
+                    className="cat-icon"
+                    style={{ backgroundColor: getCategoryColor(cat.name) }}
+                  >
+                    {categoryIcons[cat.name] || <Package size={24} weight="fill" />}
+                  </div>
+                  <span className="category-name">{cat.name}</span>
+                  <button
+                    type="button"
+                    className="cat-delete-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCategory(cat.id, cat.name);
+                    }}
+                  >
+                    <X size={12} weight="bold" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {/* 添加一级分类 - 单独一行 */}
+            {showParentCustomInput ? (
+              <div className="custom-category-row">
+                <input
+                  type="text"
+                  className="custom-category-text-input"
+                  value={parentCustomName}
+                  onChange={(e) => setParentCustomName(e.target.value)}
+                  placeholder="输入新分类名称，回车确认"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.stopPropagation();
+                      handleAddParentCategory();
+                    }
+                    if (e.key === 'Escape') {
+                      setShowParentCustomInput(false);
+                      setParentCustomName('');
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="custom-category-confirm"
+                  onClick={handleAddParentCategory}
+                  disabled={!parentCustomName.trim() || isAddingParentCategory}
+                >
+                  <Check size={18} weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  className="custom-category-cancel"
+                  onClick={() => {
+                    setShowParentCustomInput(false);
+                    setParentCustomName('');
+                  }}
+                >
+                  <X size={18} weight="bold" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="add-category-row-btn"
+                onClick={() => setShowParentCustomInput(true)}
+              >
+                <Plus size={16} weight="bold" />
+                <span>添加一级分类</span>
+              </button>
+            )}
+          </div>
+
+          {selectedParentId && (
+            <div className="form-group">
+              <label>二级分类</label>
+              <div className="category-grid">
+                {subCategories.map((cat) => (
+                  <div
+                    key={cat.id}
+                    className={`category-btn small ${selectedCategoryId === cat.id ? 'active' : ''}`}
+                    onClick={() => setSelectedCategoryId(cat.id)}
+                  >
+                    <div
+                      className="cat-icon"
+                      style={{ backgroundColor: subCategoryColors[cat.name] || getCategoryColor(cat.parentCategoryName || '') }}
+                    >
+                      {subCategoryIcons[cat.name] || <Package size={18} weight="fill" />}
+                    </div>
+                    <span className="category-name">{cat.name}</span>
+                    <button
+                      type="button"
+                      className="cat-delete-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteCategory(cat.id, cat.name);
+                      }}
+                    >
+                      <X size={12} weight="bold" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {/* 添加自定义分类 - 单独一行 */}
+              {showCustomInput ? (
+                <div className="custom-category-row">
+                  <input
+                    type="text"
+                    className="custom-category-text-input"
+                    value={customCategoryName}
+                    onChange={(e) => setCustomCategoryName(e.target.value)}
+                    placeholder="输入新分类名称，按回车确认"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.stopPropagation();
+                        handleAddCustomCategory();
+                      }
+                      if (e.key === 'Escape') {
+                        setShowCustomInput(false);
+                        setCustomCategoryName('');
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="custom-category-confirm"
+                    onClick={handleAddCustomCategory}
+                    disabled={!customCategoryName.trim() || isAddingCategory}
+                  >
+                    <Check size={18} weight="bold" />
+                  </button>
+                  <button
+                    type="button"
+                    className="custom-category-cancel"
+                    onClick={() => {
+                      setShowCustomInput(false);
+                      setCustomCategoryName('');
+                    }}
+                  >
+                    <X size={18} weight="bold" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="add-category-row-btn"
+                  onClick={() => setShowCustomInput(true)}
+                >
+                  <Plus size={16} weight="bold" />
+                  <span>添加自定义分类</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
-      )}
-
-      <div className="form-group">
-        <label>备注（可选）</label>
-        <input
-          type="text"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="添加备注..."
-        />
-      </div>
-
-      <div className="form-actions">
-        <button type="button" className="btn-cancel" onClick={onCancel}>
-          取消
-        </button>
-        <button type="button" className="btn-submit" onClick={handleActualSubmit}>
-          {record ? '保存' : '添加'}
-        </button>
       </div>
 
       {/* 分类删除撤销提示 */}

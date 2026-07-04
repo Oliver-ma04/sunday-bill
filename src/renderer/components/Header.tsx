@@ -28,8 +28,7 @@ function Header({ title }: HeaderProps) {
   return (
     <header className="header">
       <h1 className="header-title">
-        <span>Sunday</span>
-        <span className="accent">记账</span>
+        <span>周</span><span>日</span><span>记</span><span>账</span>
       </h1>
       <div className="header-actions">
         <button
@@ -37,7 +36,7 @@ function Header({ title }: HeaderProps) {
           className="header-btn"
           aria-label="Toggle theme"
         >
-          {currentTheme === 'dark' ? <Sun size={20} weight="bold" /> : <Moon size={20} weight="bold" />}
+          {currentTheme === 'dark' ? <Sun size={18} weight="bold" /> : <Moon size={18} weight="bold" />}
         </button>
       </div>
     </header>

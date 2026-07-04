@@ -142,52 +142,75 @@ function App() {
     switch (view) {
       case 'add':
         return (
-          <RecordForm
-            categories={categories}
-            categoriesByParent={categoriesByParent}
-            selectedParentId={selectedParentId}
-            onSelectParent={setSelectedParentId}
-            onSubmit={handleAddRecord}
-            onCancel={() => setView('list')}
-            onCategoryAdded={loadCategories}
-            onCategoryDeleted={loadCategories}
-          />
+          <div className="form-full">
+            <RecordForm
+              categories={categories}
+              categoriesByParent={categoriesByParent}
+              selectedParentId={selectedParentId}
+              onSelectParent={setSelectedParentId}
+              onSubmit={handleAddRecord}
+              onCancel={() => setView('list')}
+              onCategoryAdded={loadCategories}
+              onCategoryDeleted={loadCategories}
+            />
+          </div>
         );
       case 'edit':
         return editingRecord ? (
-          <RecordForm
-            record={editingRecord}
-            categories={categories}
-            categoriesByParent={categoriesByParent}
-            selectedParentId={editingRecord.categoryId}
-            onSelectParent={() => {}}
-            onSubmit={(input) => handleUpdateRecord(editingRecord.id, input)}
-            onCancel={() => { setEditingRecord(null); setView('list'); }}
-          />
+          <div className="form-full">
+            <RecordForm
+              record={editingRecord}
+              categories={categories}
+              categoriesByParent={categoriesByParent}
+              selectedParentId={editingRecord.categoryId}
+              onSelectParent={() => {}}
+              onSubmit={(input) => handleUpdateRecord(editingRecord.id, input)}
+              onCancel={() => { setEditingRecord(null); setView('list'); }}
+            />
+          </div>
         ) : null;
       case 'stats':
-        return <Stats date={currentDate} />;
+        return (
+          <div className="stats-full">
+            <Stats date={currentDate} />
+          </div>
+        );
       default:
         return (
           <>
-            <div className="summary-card">
-              <div className="summary-header">
-                <div>
-                  <div className="summary-label">当日支出</div>
-                  <div className="summary-amount">¥{dayTotal.toFixed(2)}</div>
+            <div className="record-panel">
+              <div className="summary-cards-row">
+                <div className="summary-card">
+                  <div className="summary-header">
+                    <div>
+                      <div className="summary-label">当日支出</div>
+                      <div className="summary-amount">¥{dayTotal.toFixed(2)}</div>
+                    </div>
+                    <div className="summary-actions">
+                      <button className="summary-btn" onClick={handleExportCSV} title="导出CSV">
+                        <Export size={16} weight="bold" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="summary-actions">
-                  <button className="summary-btn" onClick={handleExportCSV} title="导出CSV">
-                    <Export size={20} weight="bold" />
-                  </button>
+                <div className="summary-card secondary">
+                  <div className="summary-header">
+                    <div>
+                      <div className="summary-label">本月统计</div>
+                      <div className="summary-amount">¥{dayTotal.toFixed(2)}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
+              <RecordList
+                records={records}
+                onEdit={handleEditRecord}
+                onDelete={handleDeleteRecord}
+              />
             </div>
-            <RecordList
-              records={records}
-              onEdit={handleEditRecord}
-              onDelete={handleDeleteRecord}
-            />
+            <div className="stats-panel">
+              <Stats date={currentDate} />
+            </div>
           </>
         );
     }
@@ -195,10 +218,38 @@ function App() {
 
   return (
     <div className="app">
-      <Header title="Sunday记账" />
-      <DateSelector date={currentDate} onChange={setCurrentDate} dayTotal={dayTotal} />
-      <div className="content">
-        {renderContent()}
+      <div className="sidebar">
+        <Header title="周日记账" />
+        <div className="tab-bar">
+          <button
+            className={`tab ${view === 'list' ? 'active' : ''}`}
+            onClick={() => setView('list')}
+          >
+            <List size={20} weight={view === 'list' ? 'fill' : 'regular'} />
+            <span>记录</span>
+          </button>
+          <button
+            className={`tab ${view === 'add' ? 'active' : ''}`}
+            onClick={handleStartAdd}
+          >
+            <Plus size={20} weight={view === 'add' ? 'fill' : 'regular'} />
+            <span>新增</span>
+          </button>
+          <button
+            className={`tab ${view === 'stats' ? 'active' : ''}`}
+            onClick={() => setView('stats')}
+          >
+            <ChartPie size={20} weight={view === 'stats' ? 'fill' : 'regular'} />
+            <span>统计</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="main-area">
+        <DateSelector date={currentDate} onChange={setCurrentDate} dayTotal={dayTotal} />
+        <div className="content">
+          {renderContent()}
+        </div>
       </div>
 
       {/* Undo snackbar */}
@@ -208,30 +259,6 @@ function App() {
           <button onClick={handleUndo}>撤销</button>
         </div>
       )}
-
-      <div className="tab-bar">
-        <button
-          className={`tab ${view === 'list' ? 'active' : ''}`}
-          onClick={() => setView('list')}
-        >
-          <List size={20} weight={view === 'list' ? 'fill' : 'regular'} />
-          <span>记录</span>
-        </button>
-        <button
-          className={`tab ${view === 'add' ? 'active' : ''}`}
-          onClick={handleStartAdd}
-        >
-          <Plus size={20} weight={view === 'add' ? 'fill' : 'regular'} />
-          <span>新增</span>
-        </button>
-        <button
-          className={`tab ${view === 'stats' ? 'active' : ''}`}
-          onClick={() => setView('stats')}
-        >
-          <ChartPie size={20} weight={view === 'stats' ? 'fill' : 'regular'} />
-          <span>统计</span>
-        </button>
-      </div>
     </div>
   );
 }
