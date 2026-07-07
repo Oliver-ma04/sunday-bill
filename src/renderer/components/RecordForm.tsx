@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Record, RecordInput, Category } from '../types';
 import {
   ForkKnife,
@@ -39,7 +39,6 @@ import {
   Gift,
   X,
   Check,
-  Trash,
   ArrowUp,
   ArrowDown,
 } from '@phosphor-icons/react';
@@ -136,16 +135,6 @@ const subCategoryColors: Record<string, string> = {
   '捐赠': '#a8d4a8',
 };
 
-// 预设的二级分类名称，用于判断是否为自定义分类
-const presetSubCategories = new Set([
-  '早餐', '午餐', '晚餐', '饮料', '水果', '零食', '外卖',
-  '公交', '地铁', '出租车', '加油', '停车', '高速费',
-  '房租', '房贷', '水费', '电费', '燃气费', '物业费',
-  '服装', '日用品', '化妆品', '电子产品', '书籍',
-  '电影', 'KTV', '旅游', '游戏', '健身',
-  '医疗', '教育', '通讯', '人情', '捐赠',
-]);
-
 interface RecordFormProps {
   record?: Record;
   categories: Category[];
@@ -188,16 +177,27 @@ function RecordForm({
   const [undoTimeout, setUndoTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedParentId = externalParentId !== undefined ? externalParentId : internalParentId;
-  const handleSelectParent = onSelectParent || setInternalParentId;
+
+  // 使用 useCallback 包装 handleSelectParent，避免 useEffect 依赖问题
+  // 当 onSelectParent 提供时使用它，否则使用内部状态 setter
+  const handleSelectParent = useCallback((id: number | null) => {
+    if (onSelectParent) {
+      onSelectParent(id);
+    } else {
+      setInternalParentId(id);
+    }
+  }, [onSelectParent]);
 
   useEffect(() => {
     if (record) {
+      // 编辑模式：根据记录中的分类ID找到对应的一级分类并选中
       const category = categories.find(c => c.id === record.categoryId);
       if (category) {
         handleSelectParent(category.parentId);
         setSelectedCategoryId(category.id);
       }
     } else if (!externalParentId && Object.keys(categoriesByParent).length > 0) {
+      // 新增模式：默认选中第一个一级分类
       const parents = categories.filter(c => c.parentId === null);
       if (parents.length > 0) {
         handleSelectParent(parents[0].id);
@@ -211,11 +211,19 @@ function RecordForm({
 
   // 实际提交处理（由添加按钮触发）
   const handleActualSubmit = () => {
-    if (!amount || !selectedCategoryId) {
-      alert('请填写金额并选择分类');
+    // 验证金额
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      alert('请填写有效的金额（正数）');
       return;
     }
-    const finalAmount = isExpense ? parseFloat(amount) : -parseFloat(amount);
+    // 验证分类
+    if (!selectedCategoryId) {
+      alert('请选择分类');
+      return;
+    }
+    // 支出为正数，收入为负数（便于统计）
+    const finalAmount = isExpense ? parsedAmount : -parsedAmount;
     onSubmit({
       amount: finalAmount,
       categoryId: selectedCategoryId,
@@ -307,8 +315,6 @@ function RecordForm({
       console.error('删除分类失败:', error);
     }
   };
-
-  const isCustomCategory = (name: string) => !presetSubCategories.has(name);
 
   const parentCategories = categories.filter(c => c.parentId === null);
   const subCategories = selectedParentId

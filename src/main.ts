@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, dialog } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import fs from 'fs';
@@ -299,7 +299,8 @@ function addParentCategory(name: string): Category {
 // 获取月度统计
 function getMonthlyStats(year: number, month: number) {
   const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-  const endDate = `${year}-${String(month).padStart(2, '0')}-31`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
   const monthRecords = db.records.filter(r => r.date >= startDate && r.date <= endDate);
 
@@ -337,7 +338,6 @@ const createWindow = () => {
         {
           label: '关于',
           click: () => {
-            const { dialog } = require('electron');
             dialog.showMessageBox(mainWindow!, {
               type: 'info',
               title: '关于 Sunday记账',
@@ -390,6 +390,19 @@ function getDayTotal(date: string) {
   return dayRecords.reduce((sum, r) => sum + r.amount, 0);
 }
 
+// CSV 单元格转义：防止 CSV 注入攻击
+// 如果单元格包含逗号、引号、换行或以 =/@/+/- 开头，需要用双引号包裹
+// 双引号本身需要转义为两个双引号
+function escapeCSVCell(cell: string | number): string {
+  const str = String(cell);
+  const needsQuoting = str.includes(',') || str.includes('"') || str.includes('\n') ||
+    str.startsWith('=') || str.startsWith('@') || str.startsWith('+') || str.startsWith('-');
+  if (needsQuoting) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 // 导出CSV
 function exportCSV() {
   const headers = ['日期', '一级分类', '二级分类', '金额', '备注', '创建时间'];
@@ -398,7 +411,7 @@ function exportCSV() {
     return [r.date, parentCategoryName, categoryName, r.amount.toFixed(2), r.note, r.createdAt];
   });
 
-  const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+  const csv = [headers, ...rows].map(row => row.map(cell => escapeCSVCell(cell)).join(',')).join('\n');
   return csv;
 }
 
@@ -427,19 +440,118 @@ function undoDelete() {
 
 // 注册IPC处理程序
 function setupIPC() {
-  ipcMain.handle('get-records', (_, date: string) => getRecords(date));
-  ipcMain.handle('add-record', (_, record) => addRecord(record));
-  ipcMain.handle('update-record', (_, id: number, record) => updateRecord(id, record));
-  ipcMain.handle('delete-record', (_, id: number) => deleteRecord(id));
+  // 获取指定日期的记录
+  ipcMain.handle('get-records', (_, date: string) => {
+    // 验证日期格式 YYYY-MM-DD
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new Error('无效的日期格式');
+    }
+    return getRecords(date);
+  });
+
+  // 添加记录
+  ipcMain.handle('add-record', (_, record: { amount: number; categoryId: number; date: string; note?: string }) => {
+    // 验证金额：必须为正数
+    if (typeof record.amount !== 'number' || record.amount <= 0 || isNaN(record.amount)) {
+      throw new Error('金额必须为正数');
+    }
+    // 验证分类ID必须存在
+    const category = db.categories.find(c => c.id === record.categoryId);
+    if (!category) {
+      throw new Error('无效的分类');
+    }
+    // 验证日期格式
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(record.date)) {
+      throw new Error('无效的日期格式');
+    }
+    return addRecord(record);
+  });
+
+  // 更新记录
+  ipcMain.handle('update-record', (_, id: number, record: { amount: number; categoryId: number; date: string; note?: string }) => {
+    // 验证ID
+    if (typeof id !== 'number' || id <= 0) {
+      throw new Error('无效的记录ID');
+    }
+    // 验证金额
+    if (typeof record.amount !== 'number' || record.amount <= 0 || isNaN(record.amount)) {
+      throw new Error('金额必须为正数');
+    }
+    // 验证分类
+    const category = db.categories.find(c => c.id === record.categoryId);
+    if (!category) {
+      throw new Error('无效的分类');
+    }
+    // 验证日期
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(record.date)) {
+      throw new Error('无效的日期格式');
+    }
+    return updateRecord(id, record);
+  });
+
+  // 删除记录
+  ipcMain.handle('delete-record', (_, id: number) => {
+    if (typeof id !== 'number' || id <= 0) {
+      throw new Error('无效的记录ID');
+    }
+    return deleteRecord(id);
+  });
+
   ipcMain.handle('undo-delete', () => undoDelete());
   ipcMain.handle('get-categories', () => getCategories());
   ipcMain.handle('get-categories-by-parent', () => getCategoriesByParent());
-  ipcMain.handle('add-category', (_, name: string, parentId: number) => addCategory(name, parentId));
-  ipcMain.handle('delete-category', (_, id: number) => deleteCategory(id));
+
+  // 添加分类
+  ipcMain.handle('add-category', (_, name: string, parentId: number) => {
+    // 验证名称不为空
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      throw new Error('分类名称不能为空');
+    }
+    // 验证父分类存在
+    const parent = db.categories.find(c => c.id === parentId);
+    if (!parent) {
+      throw new Error('无效的父分类');
+    }
+    return addCategory(name.trim(), parentId);
+  });
+
+  // 删除分类
+  ipcMain.handle('delete-category', (_, id: number) => {
+    if (typeof id !== 'number' || id <= 0) {
+      throw new Error('无效的分类ID');
+    }
+    return deleteCategory(id);
+  });
+
   ipcMain.handle('undo-delete-category', () => undoDeleteCategory());
-  ipcMain.handle('add-parent-category', (_, name: string) => addParentCategory(name));
-  ipcMain.handle('get-monthly-stats', (_, year: number, month: number) => getMonthlyStats(year, month));
-  ipcMain.handle('get-day-total', (_, date: string) => getDayTotal(date));
+
+  // 添加一级分类
+  ipcMain.handle('add-parent-category', (_, name: string) => {
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      throw new Error('分类名称不能为空');
+    }
+    return addParentCategory(name.trim());
+  });
+
+  // 获取月度统计
+  ipcMain.handle('get-monthly-stats', (_, year: number, month: number) => {
+    if (typeof year !== 'number' || year < 2000 || year > 2100) {
+      throw new Error('无效的年份');
+    }
+    if (typeof month !== 'number' || month < 1 || month > 12) {
+      throw new Error('无效的月份');
+    }
+    return getMonthlyStats(year, month);
+  });
+
+  // 获取当日总额
+  ipcMain.handle('get-day-total', (_, date: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw new Error('无效的日期格式');
+    }
+    return getDayTotal(date);
+  });
+
   ipcMain.handle('export-csv', () => exportCSV());
 }
 
